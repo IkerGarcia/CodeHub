@@ -11,6 +11,7 @@
       xmlns:i="using:Microsoft.Xaml.Interactivity"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:octo="using:Octokit"
+      xmlns:animations="using:Microsoft.Toolkit.Uwp.UI.Animations"
       xmlns:toolkitControls="using:Microsoft.Toolkit.Uwp.UI.Controls"
       mc:Ignorable="d">
     <Page.Resources>
@@ -168,7 +169,7 @@
                             <SymbolIcon Symbol="Favorite">
                                 <i:Interaction.Behaviors>
                                     <core:DataTriggerBehavior Binding="{x:Bind ViewModel.IsStar, Mode=OneWay}" Value="True">
-                                        <core:ChangePropertyAction PropertyName="Foreground" Value="{StaticResource AppPrimaryColorBrush}" />
+                                        <core:ChangePropertyAction PropertyName="Foreground" Value="{StaticResource SystemControlBackgroundAccentBrush}" />
                                     </core:DataTriggerBehavior>
                                     <core:DataTriggerBehavior Binding="{x:Bind ViewModel.IsStar, Mode=OneWay}" Value="False">
                                         <core:ChangePropertyAction PropertyName="Foreground" Value="{ThemeResource ApplicationForegroundThemeBrush}" />
@@ -202,7 +203,7 @@
                             </Path.RenderTransform>
                             <i:Interaction.Behaviors>
                                 <core:DataTriggerBehavior Binding="{x:Bind ViewModel.IsWatching, Mode=TwoWay}" Value="True">
-                                    <core:ChangePropertyAction PropertyName="Fill" Value="{StaticResource AppPrimaryColorBrush}" />
+                                    <core:ChangePropertyAction PropertyName="Fill" Value="{StaticResource SystemControlBackgroundAccentBrush}" />
                                 </core:DataTriggerBehavior>
                                 <core:DataTriggerBehavior Binding="{x:Bind ViewModel.IsWatching, Mode=TwoWay}" Value="False">
                                     <core:ChangePropertyAction PropertyName="Fill" Value="{ThemeResource ApplicationForegroundThemeBrush}" />
@@ -367,12 +368,16 @@
                                        Visibility="{x:Bind ViewModel.NoReadme, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" />
                             <WebView x:Name="ReadmeWebView"
                                      NavigationCompleted="WebView_NavigationCompleted"
-                                     Visibility="{x:Bind ViewModel.NoReadme, Converter={StaticResource ReverseBooleanToVisibilityConverter}, Mode=OneWay}" />
+                                     Visibility="{x:Bind ViewModel.NoReadme, Converter={StaticResource ReverseBooleanToVisibilityConverter}, Mode=OneWay}" >
+                                <animations:Implicit.ShowAnimations>
+                                    <animations:OpacityAnimation Duration="0:0:0.8" From="0" To="1.0"></animations:OpacityAnimation>
+                                </animations:Implicit.ShowAnimations>
+                            </WebView>
 
                             <ProgressRing x:Name="ReadmeLoadingRing"
                                           Width="40"
                                           Height="40"
-                                          Foreground="{ThemeResource AppPrimaryColorBrush}" />
+                                          Foreground="{ThemeResource SystemControlBackgroundAccentBrush}" />
                         </Grid>
 
                     </ScrollViewer>
@@ -394,21 +399,16 @@
                             <ListView.ItemTemplate>
                                 <DataTemplate x:DataType="octo:RepositoryContributor">
                                     <StackPanel Orientation="Horizontal">
-                                        <Border Width="40"
-                                                Height="40"
-                                                Margin="8,8,10,0"
-                                                CornerRadius="8,8,8,8">
-                                            <Border.Background>
-                                                <ImageBrush>
-                                                    <ImageBrush.ImageSource>
-                                                        <BitmapImage DecodePixelHeight="40"
-                                                                     DecodePixelType="Logical"
-                                                                     DecodePixelWidth="40"
-                                                                     UriSource="{x:Bind AvatarUrl, Mode=OneWay}" />
-                                                    </ImageBrush.ImageSource>
-                                                </ImageBrush>
-                                            </Border.Background>
-                                        </Border>
+                                        <toolkitControls:ImageEx Width="40"
+                                                                 Height="40"
+                                                                 Margin="8,8,10,0"
+                                                                 CornerRadius="8"
+                                                                 DecodePixelHeight="40"
+                                                                 DecodePixelType="Logical"
+                                                                 DecodePixelWidth="40"
+                                                                 Source="{x:Bind AvatarUrl, Mode=OneWay}">
+
+                                        </toolkitControls:ImageEx>
 
                                         <TextBlock VerticalAlignment="Center"
                                                    FontSize="13"
@@ -420,7 +420,7 @@
 
                         <ProgressRing Width="40"
                                       Height="40"
-                                      Foreground="{ThemeResource AppPrimaryColorBrush}"
+                                      Foreground="{ThemeResource SystemControlBackgroundAccentBrush}"
                                       IsActive="{x:Bind ViewModel.IsContributorsLoading, Mode=OneWay}" />
                     </Grid>
 
@@ -448,7 +448,7 @@
 
                         <ProgressRing Width="40"
                                       Height="40"
-                                      Foreground="{ThemeResource AppPrimaryColorBrush}"
+                                      Foreground="{ThemeResource SystemControlBackgroundAccentBrush}"
                                       IsActive="{x:Bind ViewModel.IsReleasesLoading, Mode=OneWay}" />
                     </Grid>
                 </PivotItem>

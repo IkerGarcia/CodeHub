@@ -6,7 +6,6 @@ using CodeHub.Services;
 using CodeHub.ViewModels;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
-using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Navigation;
 using static CodeHub.Helpers.GlobalHelper;
 using Octokit;
@@ -14,7 +13,7 @@ using CodeHub.Controls;
 using UICompositionAnimations;
 using UICompositionAnimations.Enums;
 using RavinduL.LocalNotifications;
-using RavinduL.LocalNotifications.Presenters;
+using RavinduL.LocalNotifications.Notifications;
 using Windows.UI.Popups;
 using UICompositionAnimations.Behaviours;
 using Windows.UI.Xaml.Media;
@@ -25,6 +24,8 @@ using UICompositionAnimations.Helpers;
 using Windows.UI.Xaml.Controls;
 using CodeHub.Models;
 using Windows.ApplicationModel.Activation;
+using Microsoft.Toolkit.Uwp.Helpers;
+using Windows.ApplicationModel.Core;
 
 namespace CodeHub.Views
 {
@@ -37,7 +38,18 @@ namespace CodeHub.Views
 
         public MainPage(IActivatedEventArgs args)
         {
-            this.InitializeComponent();
+            this.InitializeComponent();           
+
+            var coreTitleBar = CoreApplication.GetCurrentView().TitleBar;
+            coreTitleBar.ExtendViewIntoTitleBar = true;
+
+            coreTitleBar.LayoutMetricsChanged += delegate
+            {
+                AppTitleBar.Height = coreTitleBar.Height;
+            };
+
+            // Set a XAML element as title bar
+            Window.Current.SetTitleBar(AppTitleBar);
 
             ViewModel = new MainViewmodel(args);
             this.DataContext = ViewModel;
@@ -46,9 +58,8 @@ namespace CodeHub.Views
             Messenger.Default.Register<LocalNotificationMessageType>(this, RecieveLocalNotificationMessage);
             Messenger.Default.Register(this, delegate(SetHeaderTextMessageType m) {  SetHeadertext(m.PageName); });
             Messenger.Default.Register(this, delegate (AdsEnabledMessageType m) { ViewModel.ToggleAdsVisiblity(); });
-            Messenger.Default.Register(this, delegate (HostWindowBlurMessageType m) { ConfigureWindowBlur(); });
             Messenger.Default.Register(this, delegate (UpdateUnreadNotificationMessageType m) { ViewModel.UpdateUnreadNotificationIndicator(m.IsUnread); });
-            Messenger.Default.Register(this, delegate (ShowWhatsNewPopupMessageType m) { ShowWhatsNewPopup(); });
+            Messenger.Default.Register(this, async delegate (ShowWhatsNewPopupMessageType m) {await ShowWhatsNewPopupVisiblity(); });
             Messenger.Default.Register<User>(this, ViewModel.RecieveSignInMessage);
             #endregion
 
@@ -69,33 +80,22 @@ namespace CodeHub.Views
             {
                 ViewModel.DisplayMode = SplitViewDisplayMode.Overlay;
                 ViewModel.IsPaneOpen = false;
-
-                if (ApiInformationHelper.IsCreatorsUpdateOrLater)
-                {
-                    BlurBorderHamburger.Background = XAMLHelper.GetResourceValue<CustomAcrylicBrush>("InAppAcrylicBrush");
-                }
+                HamRelative.Background = (AcrylicBrush)App.Current.Resources["LowOpacityElementAcrylicBrush"];
             }
             else
             {
                 ViewModel.DisplayMode = SplitViewDisplayMode.Inline;
                 ViewModel.IsPaneOpen = true;
-
-                if (ApiInformationHelper.IsCreatorsUpdateOrLater && !ApiInformationHelper.IsMobileDevice)
-                {
-                    BlurBorderHamburger.Background = XAMLHelper.GetResourceValue<CustomAcrylicBrush>("HamburgerBackdropAcrylicBrush");
-                }
+                HamRelative.Background = (AcrylicBrush)App.Current.Resources["SystemControlChromeHighAcrylicWindowMediumBrush"];
             }
         }
 
         private async void MainPage_Loaded(object sender, RoutedEventArgs e)
         {
-            ConfigureWindowBlur();
-            await ConfigureHamburgerMenuBlur();
-
             await ViewModel.Initialize();
 
-            if (WhatsNewDisplayService.IsNewVersion() && ViewModel.isLoggedin)
-                await ShowWhatsNewPopup();
+            if (SystemInformation.IsAppUpdated && ViewModel.isLoggedin)
+                await ShowWhatsNewPopupVisiblity();
         }
 
         #region click events
@@ -103,34 +103,35 @@ namespace CodeHub.Views
         {
             ViewModel.HamItemClicked(e.ClickedItem as HamItem);
         }
-        private async void SignOutFlyout_Tapped(object sender, TappedRoutedEventArgs e)
+        private async void AccountsButton_Click(object sender, RoutedEventArgs e)
         {
-            moreButton.Flyout.Hide();
-            await ViewModel.SignOut();
+            await ShowAccountsPanel();
         }
-        private async void CloseWhatsNew_Tapped(object sender, RoutedEventArgs e)
+        private async void CloseAccountsPanel_Tapped(object sender, RoutedEventArgs e)
         {
-            await WhatsNewPopup.StartCompositionFadeScaleAnimationAsync(1, 0, 1, 1.1f, 150, null, 0, EasingFunctionNames.SineEaseInOut);
-            ViewModel.isLoading = false;
-            WhatsNewPopup.Visibility = Visibility.Collapsed;
+            await AccountsPanel.StartCompositionFadeScaleAnimationAsync(1, 0, 1, 1.1f, 150, null, 0, EasingFunctionNames.SineEaseInOut);
+            ViewModel.IsAccountsPanelVisible = false;
+        }
+        private async void DeleteAccount_Click(object sender, RoutedEventArgs e)
+        {
+            await ViewModel.DeleteAccount(((Button)sender).Tag.ToString());
         }
         #endregion
 
         #region Messaging
         public void RecieveLocalNotificationMessage(LocalNotificationMessageType notif)
         {
-            notifManager.Show(new SimpleNotificationPresenter
-            (
-                TimeSpan.FromSeconds(3),
-                text: notif.Message,
-                action: async () => await new MessageDialog(notif.Message).ShowAsync(),
-                glyph: notif.Glyph
-            )
+            notifManager.Show(new SimpleNotification
             {
+                TimeSpan = TimeSpan.FromSeconds(3),
+                Text = notif.Message,
+                Glyph = notif.Glyph,
+                Action = async () => await new MessageDialog(notif.Message).ShowAsync(),
                 Background = GetSolidColorBrush("60B53BFF"),
-                Foreground = GetSolidColorBrush("FAFBFCFF"),
+                Foreground = GetSolidColorBrush("FAFBFCFF")
             },
-            LocalNotificationCollisionBehaviour.Replace);
+            LocalNotificationCollisionBehaviour.Replace
+            );
         }
         #endregion
  
@@ -148,39 +149,6 @@ namespace CodeHub.Views
             HeaderAnimationSemaphore.Release();
         }
 
-        public void ConfigureWindowBlur()
-        {
-            if (SettingsService.Get<bool>(SettingsKeys.IsAcrylicBlurEnabled) && ApiInformationHelper.IsCreatorsUpdateOrLater && !ApiInformationHelper.IsMobileDevice)
-            {
-                BlurBorder.Background = XAMLHelper.GetResourceValue<CustomAcrylicBrush>("HostBackdropAcrylicBrush");
-            }
-            else BlurBorder.Background = (Brush)XAMLHelper.GetGenericResourceValue("ApplicationPageBackgroundThemeBrush");
-        }
-
-        public async Task ConfigureHamburgerMenuBlur()
-        {
-            if (ApiInformationHelper.IsCreatorsUpdateOrLater)
-            {
-                if (!ApiInformationHelper.IsMobileDevice && HamSplitView.DisplayMode == SplitViewDisplayMode.Inline)
-                {
-                    BlurBorderHamburger.Background = XAMLHelper.GetResourceValue<CustomAcrylicBrush>("HamburgerBackdropAcrylicBrush");
-                }
-                else
-                {
-                    BlurBorderHamburger.Background = XAMLHelper.GetResourceValue<CustomAcrylicBrush>("InAppAcrylicBrush");
-                }
-            }
-            else await BlurBorderHamburger.AttachCompositionBlurEffect(20, 100, true);
-        }
-
-        private async Task ShowWhatsNewPopup()
-        {
-            WhatsNewPopup.SetVisualOpacity(0);
-            WhatsNewPopup.Visibility = Visibility.Visible;
-            ViewModel.isLoading = true;
-            await WhatsNewPopup.StartCompositionFadeScaleAnimationAsync(0, 1, 1.3f, 1, 160, null, 0, EasingFunctionNames.SineEaseInOut);
-        }
-
         private void SystemNavigationManager_BackRequested(object sender, BackRequestedEventArgs e)
         {
             IAsyncNavigationService service = SimpleIoc.Default.GetInstance<IAsyncNavigationService>();
@@ -189,6 +157,18 @@ namespace CodeHub.Views
                 e.Handled = true;
                 service.GoBackAsync();
             }
+        }
+        private async Task ShowAccountsPanel()
+        {
+            AccountsPanel.SetVisualOpacity(0);
+            ViewModel.IsAccountsPanelVisible = true;
+            await AccountsPanel.StartCompositionFadeScaleAnimationAsync(0, 1, 1.1f, 1, 150, null, 0, EasingFunctionNames.SineEaseInOut);
+        }
+        private async Task ShowWhatsNewPopupVisiblity()
+        {
+            WhatsNewPopup.SetVisualOpacity(0);
+            WhatsNewPopup.Visibility = Visibility.Visible;
+            await WhatsNewPopup.StartCompositionFadeScaleAnimationAsync(0, 1, 1.3f, 1, 160, null, 0, EasingFunctionNames.SineEaseInOut);
         }
         #endregion
     }

@@ -12,7 +12,7 @@ using System.Threading;
 namespace CodeHub.Services
 {
 
-    class UserUtility
+    class UserService
     {
         /// <summary>
         /// Gets info of a given user
@@ -72,25 +72,14 @@ namespace CodeHub.Services
         /// <summary>
         /// Gets the authenticated GithubClient
         /// </summary>
+        /// <param name="token"></param>
         /// <returns></returns>
-        public static async Task<GitHubClient> GetAuthenticatedClient()
+        public static GitHubClient GetAuthenticatedClient(string token)
         {
-            try
+            return new GitHubClient(new ProductHeaderValue("CodeHub"))
             {
-                var token = await AuthService.GetToken();
-                GitHubClient client = new GitHubClient(new ProductHeaderValue("CodeHub"));
-                if (token != null)
-                {
-                    client.Credentials = new Credentials(token);
-                }
-                return client;
-            }
-            catch
-            {
-                GitHubClient client = new GitHubClient(new ProductHeaderValue("CodeHub"));
-                return client;
-            }
-
+                Credentials = new Credentials(token)
+            };
         }
 
         /// <summary>
@@ -286,6 +275,40 @@ namespace CodeHub.Services
                 });
 
                 return new ObservableCollection<Issue>(issues);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Updates a user's profile
+        /// </summary>
+        /// <param name="userUpdate"></param>
+        /// <returns></returns>
+        public static async Task<User> UpdateUserProfile(UserUpdate userUpdate)
+        {
+            try
+            {
+                return await GlobalHelper.GithubClient.User.Update(userUpdate);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Gets all email addresses of the current user
+        /// </summary>
+        /// <returns></returns>
+        public static async Task<ObservableCollection<EmailAddress>> GetVerifiedEmails()
+        {
+            try
+            {
+                var emails = await GlobalHelper.GithubClient.User.Email.GetAll();
+                return new ObservableCollection<EmailAddress>(emails);
             }
             catch
             {

@@ -4,17 +4,21 @@ using Windows.ApplicationModel;
 using Windows.System;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Microsoft.Toolkit.Uwp.Helpers;
+using CodeHub.ViewModels.Settings;
 
 namespace CodeHub.Views
 {
     public sealed partial class AboutSettingsView : SettingsDetailPageBase
     {
-        private SettingsViewModel ViewModel;
+        private AboutSettingsViewModel ViewModel;
+
         public AboutSettingsView()
         {
             this.InitializeComponent();
 
-            ViewModel = new SettingsViewModel();
+            ViewModel = new AboutSettingsViewModel();
+
             this.DataContext = ViewModel;
         }
         private void OnCurrentStateChanged(object sender, VisualStateChangedEventArgs e)
@@ -25,8 +29,7 @@ namespace CodeHub.Views
 
         private async void RateButton_Tapped(object sender, Windows.UI.Xaml.Input.TappedRoutedEventArgs e)
         {
-            await Launcher.LaunchUriAsync(
-                new Uri($"ms-windows-store://review/?PFN={Package.Current.Id.FamilyName}"));
+            await SystemInformation.LaunchStoreForReviewAsync();
         }
 
         private async void TwitterButton_Tapped(object sender, Windows.UI.Xaml.Input.TappedRoutedEventArgs e)
@@ -43,7 +46,7 @@ namespace CodeHub.Views
         private async void EmailButton_Tapped(object sender, Windows.UI.Xaml.Input.TappedRoutedEventArgs e)
         {
             await Launcher.LaunchUriAsync(
-               new Uri("mailto:contact@devnextdoor.com"));
+               new Uri("mailto:aalok_2@live.com"));
         }
     }
 }

@@ -1,18 +1,21 @@
 ﻿using CodeHub.Views;
 using Windows.ApplicationModel.Activation;
 using Windows.UI.Xaml;
-using Windows.UI.Xaml.Navigation;
 using CodeHub.Services;
 using Windows.UI.ViewManagement;
 using Windows.UI;
 using Windows.Foundation.Metadata;
 using Windows.Foundation;
 using Windows.UI.Xaml.Media;
-using CodeHub.Controls;
 using CodeHub.Helpers;
 using CodeHub.Services.Hilite_me;
-using Windows.System;
 using System.Threading.Tasks;
+using Microsoft.AppCenter;
+using Microsoft.AppCenter.Analytics;
+using Microsoft.AppCenter.Crashes;
+using XamlBrewer.Uwp.Controls;
+using Windows.UI.Xaml.Controls;
+using Windows.ApplicationModel.Core;
 
 namespace CodeHub
 {
@@ -28,16 +31,17 @@ namespace CodeHub
         public App()
         {
             this.InitializeComponent();
-          
+
             // Theme setup
             RequestedTheme = SettingsService.Get<bool>(SettingsKeys.AppLightThemeEnabled) ? ApplicationTheme.Light : ApplicationTheme.Dark;
             SettingsService.Save(SettingsKeys.HighlightStyleIndex, (int)SyntaxHighlightStyleEnum.Monokai, false);
             SettingsService.Save(SettingsKeys.ShowLineNumbers, true, false);
-            SettingsService.Save(SettingsKeys.LoadCommitsInfo, true, false);
+            SettingsService.Save(SettingsKeys.LoadCommitsInfo, false, false);
             SettingsService.Save(SettingsKeys.IsAdsEnabled, false, false);
-            SettingsService.Save(SettingsKeys.IsAcrylicBlurEnabled, false, false);
             SettingsService.Save(SettingsKeys.IsNotificationCheckEnabled, true, false);
             SettingsService.Save(SettingsKeys.HasUserDonated, false, false);
+
+            AppCenter.Start("ecd96e4c-b301-48f3-b640-166a040f1d86", typeof(Analytics), typeof(Crashes));
         }
 
         /// <summary>
@@ -56,6 +60,7 @@ namespace CodeHub
                 if (Window.Current.Content == null)
                 {
                     Window.Current.Content = new MainPage(null);
+                    (Window.Current.Content as Page).OpenFromSplashScreen(e.SplashScreen.ImageLocation);
                 }
 
                 if (ApiInformation.IsTypePresent("Windows.UI.ViewManagement.ApplicationView"))
@@ -66,13 +71,12 @@ namespace CodeHub
                     var titleBar = ApplicationView.GetForCurrentView().TitleBar;
                     if (titleBar != null)
                     {
-                        titleBar.BackgroundColor = 
-                        titleBar.ButtonBackgroundColor = 
-                        titleBar.InactiveBackgroundColor = 
-                        titleBar.ButtonInactiveBackgroundColor =
-                        (Color)App.Current.Resources["SystemChromeLowColor"];
-                         
-                        titleBar.ForegroundColor = (Color)App.Current.Resources["SystemChromeHighColor"];
+                        titleBar.ButtonBackgroundColor = titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
+
+                        titleBar.ForegroundColor =
+                        titleBar.ButtonInactiveForegroundColor =
+                        titleBar.ButtonForegroundColor =
+                        Colors.White;
                     }
                 }
 
@@ -85,7 +89,7 @@ namespace CodeHub
         {
             if (args.Kind == ActivationKind.Protocol)
             {
-                if(args.PreviousExecutionState == ApplicationExecutionState.Running)
+                if (args.PreviousExecutionState == ApplicationExecutionState.Running)
                 {
                     await HandleProtocolActivationArguments(args);
                 }
@@ -107,16 +111,16 @@ namespace CodeHub
                         var titleBar = ApplicationView.GetForCurrentView().TitleBar;
                         if (titleBar != null)
                         {
-                            titleBar.BackgroundColor =
-                            titleBar.ButtonBackgroundColor =
-                            titleBar.InactiveBackgroundColor =
-                            titleBar.ButtonInactiveBackgroundColor =
-                            (Color)App.Current.Resources["SystemChromeLowColor"];
+                            titleBar.ButtonBackgroundColor = titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
 
-                            titleBar.ForegroundColor = (Color)App.Current.Resources["SystemChromeHighColor"];
-
+                            titleBar.ForegroundColor = 
+                            titleBar.ButtonInactiveForegroundColor = 
+                            titleBar.ButtonForegroundColor =
+                            Colors.White;
+                            
                         }
                     }
+
                     Window.Current.Activate();
                 }
             }
@@ -124,7 +128,7 @@ namespace CodeHub
 
         private async Task HandleProtocolActivationArguments(IActivatedEventArgs args)
         {
-            if (await AuthService.checkAuth())
+            if (!string.IsNullOrWhiteSpace(GlobalHelper.UserLogin))
             {
                 ProtocolActivatedEventArgs eventArgs = args as ProtocolActivatedEventArgs;
 

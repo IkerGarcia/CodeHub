@@ -91,7 +91,7 @@ namespace CodeHub.ViewModels
         {
             get
             {
-                return "Hi all! \nHere's the changelog for v 2.3.4\n\n\x2022 Redesigned profile view for better experience in small screens \n\x2022 Added collapse button in issue and PR views for better experience in small screens \n\x2022 UI improvements \n\x2022 Handled fork and commit related click events for activities in profile view";
+                return "Hi all! \nHere's the changelog for v2.4.14\n\n\x2022 Added Turkish translations\n\x2022 Minor fluent UI improvements\n\x2022 Target build updated to 17134.0\n\x2022 Clicking on notifications now lands you on the specific issue or PR  \n\n NOTE: Please update to Fall creator's update or above to get latest CodeHub updates.";
             }
         }
         #endregion

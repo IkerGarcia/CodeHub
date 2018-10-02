@@ -38,6 +38,7 @@ namespace CodeHub.Views
 
             MainPivot.SelectedItem = MainPivot.Items[0];
             ReadmeLoadingRing.IsActive = true;
+            ViewModel.NoReadme = true;
 
             if (GlobalHelper.IsInternet())
             {
@@ -45,10 +46,11 @@ namespace CodeHub.Views
                 {
                     String ReadmeHTML = await RepositoryUtility.GetReadmeHTMLForRepository(ViewModel.Repository.Id);
                     if (!string.IsNullOrWhiteSpace(ReadmeHTML))
+                    {
                         ReadmeWebView.NavigateToString("<html><head> <link rel =\"stylesheet\" href =\"ms-appx-web:///Assets/css/github-markdown.css\" type =\"text/css\" media =\"screen\" /> </head> <body> " + ReadmeHTML + " </body></html> ");
+                    }
                     else
                     {
-                        ViewModel.NoReadme = true;
                         ReadmeLoadingRing.IsActive = false;
                     }
                 }
@@ -78,6 +80,7 @@ namespace CodeHub.Views
                 })()"
             });
             ReadmeLoadingRing.IsActive = false;
+            ViewModel.NoReadme = false;
         }
 
         //private void TopScroller_OnTopScrollingRequested(object sender, EventArgs e)
@@ -89,7 +92,7 @@ namespace CodeHub.Views
         {
             if(DataTransferManager.IsSupported())
             {
-                if (!string.IsNullOrEmpty(ViewModel.Repository.HtmlUrl))
+                if (ViewModel.Repository != null && !string.IsNullOrEmpty(ViewModel.Repository.HtmlUrl))
                 {
                     args.Request.Data.SetText(ViewModel.Repository.HtmlUrl);
                     args.Request.Data.Properties.Title = Windows.ApplicationModel.Package.Current.DisplayName;

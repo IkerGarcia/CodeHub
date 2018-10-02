@@ -1,6 +1,5 @@
 # CodeHub
 <span class="badge-patreon"><a href="https://www.patreon.com/aalok05" title="Donate to this project using Patreon"><img src="https://img.shields.io/badge/patreon-donate-yellow.svg" alt="Patreon donate button" /></a></span>
-[![Gratipay User](https://img.shields.io/gratipay/user/aalok05.svg)](https://gratipay.com/CodeHub-A-client-for-GitHub/)
 [![Twitter URL](https://img.shields.io/badge/tweet-%40devaalok-blue.svg?style=social&style=flat-square)](https://twitter.com/devaalok)
 
 CodeHub is a Universal Windows GitHub client that helps you keep up with the open source world.
@@ -17,6 +16,7 @@ CodeHub is a Universal Windows GitHub client that helps you keep up with the ope
 * Search repositories, users, issues and code
 * Star, Watch and Fork repositories
 * Follow users
+* Edit profile
 
 ## Screenshots
 
@@ -52,7 +52,14 @@ I thank the makers of these libraries
 * [UWP Community Toolkit](https://github.com/Microsoft/UWPCommunityToolkit)
 * [HTML Agility Pack](https://www.nuget.org/packages/HtmlAgilityPack)
 * [LocalNotifications](https://github.com/RavinduL/LocalNotifications)
+* [UWP-Animated-SplashScreen](https://github.com/XamlBrewer/UWP-Animated-SplashScreen)
 
 ## Gitter chat
 * https://gitter.im/CodehubUWP/Bugs
 * https://gitter.im/CodehubUWP/FeatureRequests
+
+## Patrons
+* Ian Rasmussen
+
+Special thanks to my patrons for supporting me in making UWP apps :)
+You can also become a patron [here](https://www.patreon.com/aalok05).

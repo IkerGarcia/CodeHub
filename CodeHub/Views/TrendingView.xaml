@@ -58,8 +58,7 @@
                                                           ScrollViewer.HorizontalScrollMode="Disabled">
 
                         <toolkitControl:PullToRefreshListView.Header>
-                            <toolkitControl:ScrollHeader Mode="Fade" 
-                                                         TargetListViewBase="{x:Bind todayListView}">
+                            <toolkitControl:ScrollHeader Mode="Fade">
                                 <Button Style="{StaticResource ActionButtonStyle}"
                                         Padding="0"
                                         HorizontalContentAlignment="Stretch"
@@ -93,7 +92,7 @@
                                  Margin="0,0,0,10"
                                  HorizontalAlignment="Stretch"
                                  VerticalAlignment="Bottom"
-                                 Foreground="{StaticResource AppPrimaryColorBrush}"
+                                 Foreground="{StaticResource SystemControlBackgroundAccentBrush}"
                                  IsIndeterminate="True"
                                  Visibility="{x:Bind ViewModel.IsIncrementalLoadingToday, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" />
 
@@ -104,7 +103,7 @@
                     <ProgressRing Width="40"
                                   Height="40"
                                   FontSize="40"
-                                  Foreground="{StaticResource AppPrimaryColorBrush}"
+                                  Foreground="{StaticResource SystemControlBackgroundAccentBrush}"
                                   IsActive="{x:Bind ViewModel.IsLoadingToday, Mode=OneWay}" />
                 </Grid>
             </PivotItem>
@@ -127,8 +126,7 @@
                                                           RefreshRequested="{x:Bind ViewModel.RefreshWeekCommand}"
                                                           ScrollViewer.HorizontalScrollMode="Disabled">
                         <toolkitControl:PullToRefreshListView.Header>
-                            <toolkitControl:ScrollHeader Mode="Fade" 
-                                                         TargetListViewBase="{x:Bind weekListView}">
+                            <toolkitControl:ScrollHeader Mode="Fade">
                                 <Button Style="{StaticResource ActionButtonStyle}"
                                         Padding="0"
                                         Tapped="{x:Bind ViewModel.FirstRepoWeekNavigate}"
@@ -161,7 +159,7 @@
                                  Margin="0,0,0,10"
                                  HorizontalAlignment="Stretch"
                                  VerticalAlignment="Bottom"
-                                 Foreground="{StaticResource AppPrimaryColorBrush}"
+                                 Foreground="{StaticResource SystemControlBackgroundAccentBrush}"
                                  IsIndeterminate="True"
                                  Visibility="{x:Bind ViewModel.IsIncrementalLoadingWeek, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" />
 
@@ -170,7 +168,7 @@
                                Visibility="{x:Bind ViewModel.ZeroWeeklyCount, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" />
                     <ProgressRing Width="40"
                                   Height="40"
-                                  Foreground="{StaticResource AppPrimaryColorBrush}"
+                                  Foreground="{StaticResource SystemControlBackgroundAccentBrush}"
                                   IsActive="{x:Bind ViewModel.IsLoadingWeek, Mode=OneWay}" />
                 </Grid>
 
@@ -195,8 +193,7 @@
                                                           ScrollViewer.HorizontalScrollMode="Disabled">
 
                         <toolkitControl:PullToRefreshListView.Header>
-                            <toolkitControl:ScrollHeader Mode="Fade" 
-                                                         TargetListViewBase="{x:Bind monthListView}">
+                            <toolkitControl:ScrollHeader Mode="Fade">
                                 <Button Style="{StaticResource ActionButtonStyle}"
                                         Padding="0"
                                         Tapped="{x:Bind ViewModel.FirstRepoMonthNavigate}"
@@ -229,7 +226,7 @@
                                  Margin="0,0,0,10"
                                  HorizontalAlignment="Stretch"
                                  VerticalAlignment="Bottom"
-                                 Foreground="{StaticResource AppPrimaryColorBrush}"
+                                 Foreground="{StaticResource SystemControlBackgroundAccentBrush}"
                                  IsIndeterminate="True"
                                  Visibility="{x:Bind ViewModel.IsIncrementalLoadingMonth, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" />
 
@@ -238,7 +235,7 @@
                                Visibility="{x:Bind ViewModel.ZeroMonthlyCount, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" />
                     <ProgressRing Width="40"
                                   Height="40"
-                                  Foreground="{StaticResource AppPrimaryColorBrush}"
+                                  Foreground="{StaticResource SystemControlBackgroundAccentBrush}"
                                   IsActive="{x:Bind ViewModel.IsLoadingMonth, Mode=OneWay}" />
                 </Grid>
 

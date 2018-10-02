@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Windows.UI.Xaml.Controls;
 using System;
 using System.Collections.Generic;
+using Windows.UI.Xaml.Input;
 
 namespace CodeHub.ViewModels
 {
@@ -17,8 +18,10 @@ namespace CodeHub.ViewModels
     {
         #region properties
 
-        public int PaginationIndex { get; set; }
-        public double MaxScrollViewerOffset { get; set; }
+        public int ReposPaginationIndex { get; set; }
+        public int StarredReposPaginationIndex { get; set; }
+        public double ReposMaxScrollViewerOffset { get; set; }
+        public double StarredReposMaxScrollViewerOffset { get; set; }
 
         public ObservableCollection<Activity> _events;
         public ObservableCollection<Activity> Events
@@ -43,6 +46,19 @@ namespace CodeHub.ViewModels
             set
             {
                 Set(() => Repositories, ref _repositories, value);
+            }
+
+        }
+        public ObservableCollection<Repository> _starredRepositories;
+        public ObservableCollection<Repository> StarredRepositories
+        {
+            get
+            {
+                return _starredRepositories;
+            }
+            set
+            {
+                Set(() => StarredRepositories, ref _starredRepositories, value);
             }
 
         }
@@ -151,6 +167,19 @@ namespace CodeHub.ViewModels
             }
         }
 
+        public bool _IsStarredReposLoading;
+        public bool IsStarredReposLoading
+        {
+            get
+            {
+                return _IsStarredReposLoading;
+            }
+            set
+            {
+                Set(() => IsStarredReposLoading, ref _IsStarredReposLoading, value);
+            }
+        }
+
         public bool _canFollow;
         public bool CanFollow
         {
@@ -176,6 +205,23 @@ namespace CodeHub.ViewModels
                 Set(() => FollowProgress, ref _followProgress, value);
             }
         }
+
+        public bool _isUserEditable;
+
+        /// <summary>
+        /// Indicates whether a profile can be edited by current user
+        /// </summary>
+        public bool IsUserEditable
+        {
+            get
+            {
+                return _isUserEditable;
+            }
+            set
+            {
+                Set(() => IsUserEditable, ref _isUserEditable, value);
+            }
+        }
         #endregion
 
         public async Task Load(object user)
@@ -183,32 +229,41 @@ namespace CodeHub.ViewModels
             if (GlobalHelper.IsInternet())
             {
                 isLoading = true;
+
+                // Get the user from login name
                 if (user is string login)
                 {
                     if (!string.IsNullOrWhiteSpace(login))
                     {
-                        Developer = await UserUtility.GetUserInfo(login);
+                        Developer = await UserService.GetUserInfo(login);
                     }
                 }
                 else
                 {
                     Developer = user as User;
-                    if(Developer.Name == null)
+                    if(Developer != null && Developer.Name == null)
                     {
-                        Developer = await UserUtility.GetUserInfo(Developer.Login);
+                        // Get full details of the user
+                        Developer = await UserService.GetUserInfo(Developer.Login);
                     }
                 }
+
+
                 if (Developer != null)
                 {
                     if (Developer.Type == AccountType.Organization || Developer.Login == GlobalHelper.UserLogin)
                     {
+                        // Organisations can't be followed
                         CanFollow = false;
+
+                        // User can edit it's own profile
+                        IsUserEditable = Developer.Login == GlobalHelper.UserLogin;
                     }
                     else
                     {
                         CanFollow = true;
                         FollowProgress = true;
-                        if (await UserUtility.CheckFollow(Developer.Login))
+                        if (await UserService.CheckFollow(Developer.Login))
                         {
                             IsFollowing = true;
                         }
@@ -233,7 +288,7 @@ namespace CodeHub.ViewModels
                                           async () =>
                                           {
                                               FollowProgress = true;
-                                              if (await UserUtility.FollowUser(Developer.Login))
+                                              if (await UserService.FollowUser(Developer.Login))
                                               {
                                                   IsFollowing = true;
                                               }
@@ -252,7 +307,7 @@ namespace CodeHub.ViewModels
                                           async () =>
                                           {
                                               FollowProgress = true;
-                                              await UserUtility.UnFollowUser(Developer.Login);
+                                              await UserService.UnFollowUser(Developer.Login);
                                               IsFollowing = false;
                                               FollowProgress = false;
                                           }));
@@ -279,24 +334,34 @@ namespace CodeHub.ViewModels
             }
             else if (p.SelectedIndex == 2)
             {
-                IsFollowersLoading = true;
-                Followers = await UserUtility.GetAllFollowers(Developer.Login);
-                IsFollowersLoading = false;
+                IsStarredReposLoading = true;
+                await LoadStarredRepos();
+                IsStarredReposLoading = false;
             }
             else if (p.SelectedIndex == 3)
             {
+                IsFollowersLoading = true;
+                Followers = await UserService.GetAllFollowers(Developer.Login);
+                IsFollowersLoading = false;
+            }
+            else if (p.SelectedIndex == 4)
+            {
                 IsFollowingLoading = true;
-                Following = await UserUtility.GetAllFollowing(Developer.Login);
+                Following = await UserService.GetAllFollowing(Developer.Login);
                 IsFollowingLoading = false;
             }
         }
 
         public async Task LoadRepos()
         {
-            PaginationIndex++;
-            if (PaginationIndex > 1)
+            if(Repositories == null)
             {
-                var repos = await RepositoryUtility.GetRepositoriesForUser(Developer.Login, PaginationIndex);
+                Repositories = new ObservableCollection<Repository>();
+            }
+            ReposPaginationIndex++;
+            if (ReposPaginationIndex > 1)
+            {
+                var repos = await RepositoryUtility.GetRepositoriesForUser(Developer.Login, ReposPaginationIndex);
                 if (repos != null)
                 {
                     if (repos.Count > 0)
@@ -309,13 +374,45 @@ namespace CodeHub.ViewModels
                     else
                     {
                         //no more repos to load
-                        PaginationIndex = -1;
+                        ReposPaginationIndex = -1;
                     }
                 }
             }
-            else if (PaginationIndex == 1)
+            else if (ReposPaginationIndex == 1)
             {
-                Repositories = await RepositoryUtility.GetRepositoriesForUser(Developer.Login, PaginationIndex);
+                Repositories = await RepositoryUtility.GetRepositoriesForUser(Developer.Login, ReposPaginationIndex);
+            }
+        }
+
+        public async Task LoadStarredRepos()
+        {
+            if (StarredRepositories == null)
+            {
+                StarredRepositories = new ObservableCollection<Repository>();
+            }
+            StarredReposPaginationIndex++;
+            if (StarredReposPaginationIndex > 1)
+            {
+                var repos = await RepositoryUtility.GetStarredRepositoriesForUser(Developer.Login, StarredReposPaginationIndex);
+                if (repos != null)
+                {
+                    if (repos.Count > 0)
+                    {
+                        foreach (var i in repos)
+                        {
+                            StarredRepositories.Add(i);
+                        }
+                    }
+                    else
+                    {
+                        //no more repos to load
+                        StarredReposPaginationIndex = -1;
+                    }
+                }
+            }
+            else if (StarredReposPaginationIndex == 1)
+            {
+                StarredRepositories = await RepositoryUtility.GetStarredRepositoriesForUser(Developer.Login, StarredReposPaginationIndex);
             }
         }
 
@@ -329,45 +426,55 @@ namespace CodeHub.ViewModels
             SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(DeveloperProfileView), e.ClickedItem as User);
         }
 
+        public void ProfileEdit_Tapped(object sender, TappedRoutedEventArgs e)
+        {
+            SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(EditProfileView), this.Developer);
+        }
+
         public void FeedListView_ItemClick(object sender, ItemClickEventArgs e)
         {
             Activity activity = e.ClickedItem as Activity;
-
-            switch (activity.Type)
+            try
             {
-                case "IssueCommentEvent":
-                    SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(IssueDetailView), new Tuple<Repository, Issue>(activity.Repo, ((IssueCommentPayload)activity.Payload).Issue));
-                    break;
+                switch (activity.Type)
+                {
+                    case "IssueCommentEvent":
+                        SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(IssueDetailView), new Tuple<Repository, Issue>(activity.Repo, ((IssueCommentPayload)activity.Payload).Issue));
+                        break;
 
-                case "IssuesEvent":
-                    SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(IssueDetailView), new Tuple<Repository, Issue>(activity.Repo, ((IssueEventPayload)activity.Payload).Issue));
-                    break;
+                    case "IssuesEvent":
+                        SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(IssueDetailView), new Tuple<Repository, Issue>(activity.Repo, ((IssueEventPayload)activity.Payload).Issue));
+                        break;
 
-                case "PullRequestReviewCommentEvent":
-                    SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(PullRequestDetailView), new Tuple<Repository, PullRequest>(activity.Repo, ((PullRequestCommentPayload)activity.Payload).PullRequest));
-                    break;
+                    case "PullRequestReviewCommentEvent":
+                        SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(PullRequestDetailView), new Tuple<Repository, PullRequest>(activity.Repo, ((PullRequestCommentPayload)activity.Payload).PullRequest));
+                        break;
 
-                case "PullRequestEvent":
-                case "PullRequestReviewEvent":
-                    SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(PullRequestDetailView), new Tuple<Repository, PullRequest>(activity.Repo, ((PullRequestEventPayload)activity.Payload).PullRequest));
-                    break;
+                    case "PullRequestEvent":
+                    case "PullRequestReviewEvent":
+                        SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(PullRequestDetailView), new Tuple<Repository, PullRequest>(activity.Repo, ((PullRequestEventPayload)activity.Payload).PullRequest));
+                        break;
 
-                case "ForkEvent":
-                    SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(RepoDetailView), ((ForkEventPayload)activity.Payload).Forkee);
-                    break;
-                case "CommitCommentEvent":
-                    SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(CommitDetailView), new Tuple<long, string>(activity.Repo.Id, ((CommitCommentPayload)activity.Payload).Comment.CommitId));
-                    break;
+                    case "ForkEvent":
+                        SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(RepoDetailView), ((ForkEventPayload)activity.Payload).Forkee);
+                        break;
+                    case "CommitCommentEvent":
+                        SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(CommitDetailView), new Tuple<long, string>(activity.Repo.Id, ((CommitCommentPayload)activity.Payload).Comment.CommitId));
+                        break;
 
-                case "PushEvent":
-                    SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(CommitsView), new Tuple<long, IReadOnlyList<Commit>>(activity.Repo.Id, ((PushEventPayload)activity.Payload).Commits));
-                    break;
+                    case "PushEvent":
+                        SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(CommitsView), new Tuple<long, IReadOnlyList<Commit>>(activity.Repo.Id, ((PushEventPayload)activity.Payload).Commits));
+                        break;
 
-                default:
-                    SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(RepoDetailView), activity.Repo);
-                    break;
+                    default:
+                        SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(RepoDetailView), activity.Repo);
+                        break;
+                }
             }
-
+            catch
+            {
+                SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(RepoDetailView), activity.Repo);
+            }
         }
     }
 }

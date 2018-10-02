@@ -136,6 +136,14 @@ namespace CodeHub.Services
         }
 
         /// <summary>
+        /// Clears the navigation history of the frame
+        /// </summary>
+        public void ClearBackStack()
+        {
+            Frame.BackStack.Clear();
+        }
+
+        /// <summary>
         /// Search for the Page Title with the given Menu type
         /// </summary>
         /// <param name="type">type of the Menu</param>
@@ -200,6 +208,10 @@ namespace CodeHub.Services
             else if (type == typeof(TrendingView))
             {
                 return languageLoader.GetString("pageTitle_TrendingView");
+            }
+            else if (type == typeof(GeneralSettingsView))
+            {
+                return "General";
             }
             else if (type == typeof(AboutSettingsView))
             {

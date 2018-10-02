@@ -216,7 +216,8 @@ namespace CodeHub.ViewModels
                     ?? (_sourceCodeNavigate = new RelayCommand(
                                           () =>
                                           {
-                                              SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(SourceCodeView), Repository.FullName, Repository);
+                                              if(Repository != null)
+                                                SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(SourceCodeView), Repository.FullName, Repository);
 
                                           }));
             }
@@ -376,8 +377,10 @@ namespace CodeHub.ViewModels
                     ?? (_CloneCommand = new RelayCommand(
                                           () =>
                                           {
-                                              DataPackage dataPackage = new DataPackage();
-                                              dataPackage.RequestedOperation = DataPackageOperation.Copy;
+                                              DataPackage dataPackage = new DataPackage
+                                              {
+                                                  RequestedOperation = DataPackageOperation.Copy
+                                              };
                                               dataPackage.SetText(Repository.CloneUrl);
                                               Clipboard.SetContent(dataPackage);
                                               Messenger.Default.Send(new GlobalHelper.LocalNotificationMessageType { Message = Repository.CloneUrl+" copied to clipboard", Glyph = "\uE16F" });
@@ -399,7 +402,8 @@ namespace CodeHub.ViewModels
                 if (GlobalHelper.IsInternet())
                 {
                     IsContributorsLoading = true;
-                    Contributors = await RepositoryUtility.GetContributorsForRepository(Repository.Id);
+                    if(Repository != null)
+                        Contributors = await RepositoryUtility.GetContributorsForRepository(Repository.Id);
                     IsContributorsLoading = false;
                 }
             }
@@ -408,7 +412,8 @@ namespace CodeHub.ViewModels
                 if (GlobalHelper.IsInternet())
                 {
                     IsReleasesLoading = true;
-                    Releases = await RepositoryUtility.GetReleasesForRepository(Repository.Id);
+                    if (Repository != null)
+                        Releases = await RepositoryUtility.GetReleasesForRepository(Repository.Id);
                     IsReleasesLoading = false;
                 }
             }

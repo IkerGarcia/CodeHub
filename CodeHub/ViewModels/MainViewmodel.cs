@@ -17,6 +17,8 @@ using Windows.UI.Xaml.Controls;
 using Windows.UI.Core;
 using CodeHub.Controls;
 using Windows.ApplicationModel.Activation;
+using System.Linq;
+using Windows.ApplicationModel.Core;
 
 namespace CodeHub.ViewModels
 {
@@ -38,19 +40,6 @@ namespace CodeHub.ViewModels
             }
         }
 
-        private string _email;
-        public string Email
-        {
-            get
-            {
-                return _email;
-            }
-            set
-            {
-                Set(() => Email, ref _email, value);
-            }
-        }
-
         private ObservableCollection<HamItem> _HamItems = new ObservableCollection<HamItem>();
         public ObservableCollection<HamItem> HamItems
         {
@@ -61,6 +50,26 @@ namespace CodeHub.ViewModels
                 Set(() => HamItems, ref _HamItems, value);
             }
         }
+        private ObservableCollection<Models.Account> _InactiveAccounts = new ObservableCollection<Models.Account>();
+        public ObservableCollection<Models.Account> InactiveAccounts
+        {
+
+            get { return _InactiveAccounts; }
+            set
+            {
+                Set(() => InactiveAccounts, ref _InactiveAccounts, value);
+            }
+        }
+        private Models.Account _activeAccount = new Models.Account();
+        public Models.Account ActiveAccount
+        {
+
+            get { return _activeAccount; }
+            set
+            {
+                Set(() => ActiveAccount, ref _activeAccount, value);
+            }
+        }
         private bool _isPaneOpen;
         public bool IsPaneOpen
         {
@@ -68,6 +77,15 @@ namespace CodeHub.ViewModels
             set
             {
                 Set(() => IsPaneOpen, ref _isPaneOpen, value);
+            }
+        }
+        private bool _isAccountsPanelVisible;
+        public bool IsAccountsPanelVisible
+        {
+            get { return _isAccountsPanelVisible; }
+            set
+            {
+                Set(() => IsAccountsPanelVisible, ref _isAccountsPanelVisible, value);
             }
         }
 
@@ -161,22 +179,76 @@ namespace CodeHub.ViewModels
 
                                               if (await service.Authenticate())
                                               {
-                                                  GlobalHelper.GithubClient = await UserUtility.GetAuthenticatedClient();
-                                                  var user = await UserUtility.GetCurrentUserInfo();
-                                                  await LoadUser(user);
+                                                  
+                                                  var user = await UserService.GetCurrentUserInfo();
+                                                  LoadUser(user);
+                                                  await InitializeAccounts();
                                               }
+                                              IsAccountsPanelVisible = false;
                                               isLoading = false;
                                              
                                           }));
             }
         }
 
+        private RelayCommand _signOutCommand;
+        public RelayCommand SignOutCommand
+        {
+            get
+            {
+                return _signOutCommand
+                    ?? (_signOutCommand = new RelayCommand(
+                                          async () =>
+                                          {
+                                              isLoading = true;
+
+                                              if (await AuthService.SignOut(ActiveAccount.Id.ToString()))
+                                              {
+                                                  User = null;
+                                                  HamItemClicked(HamItems[0]);
+
+                                                  InactiveAccounts = await AccountsService.GetAllUsers();
+                                                  if (InactiveAccounts != null && InactiveAccounts.Count > 0)
+                                                  {
+                                                      var availableAccounts = InactiveAccounts.Where(x => x.Id != ActiveAccount.Id);
+                                                      if(availableAccounts.Count() > 0)
+                                                      {
+                                                          ActiveAccount = availableAccounts.First();
+                                                          await AccountsService.MakeAccountActive(ActiveAccount.Id.ToString());
+                                                          await InitializeAccounts();
+                                                      }
+                                                      else
+                                                      {
+                                                          ActiveAccount = null;
+                                                          isLoggedin = false;
+                                                          Messenger.Default.Send(new SignOutMessageType());
+                                                          GlobalHelper.UserLogin = string.Empty;
+                                                      }
+                                                  }
+                                                  else
+                                                  {
+                                                      ActiveAccount = null;
+                                                      isLoggedin = false;
+                                                      Messenger.Default.Send(new SignOutMessageType());
+                                                      GlobalHelper.UserLogin = string.Empty;
+                                                  }
+                                              }
+
+                                              SimpleIoc.Default.GetInstance<IAsyncNavigationService>().ClearBackStack();
+                                              IsAccountsPanelVisible = false;
+                                              isLoading = false;
+
+                                          }));
+            }
+        }
         #endregion
 
         public async Task Initialize()
         {
-            isLoggedin = await AuthService.checkAuth();
-            await Load();
+            var adstask = CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+            async () => { await ConfigureAdsVisibility(); });
+
+            await InitializeAccounts();
 
             if (isLoggedin)
             {
@@ -205,55 +277,61 @@ namespace CodeHub.ViewModels
                     await CheckForUnreadNotifications();
             }
 
-            await ConfigureAdsVisibility();
         }
-
-        public async Task Load()
+        public async Task InitializeAccounts()
         {
-            GithubClient = await UserUtility.GetAuthenticatedClient();
+            InactiveAccounts = await AccountsService.GetAllUsers();
+
+            if (InactiveAccounts != null && InactiveAccounts.Count > 0)
+            {
+                var activeAccounts = InactiveAccounts.Where(x => x.IsActive == true);
+                if (activeAccounts.Count() != 0)
+                {
+                    ActiveAccount = activeAccounts.First();
+
+                    InactiveAccounts.Remove(ActiveAccount);
+                    isLoggedin = AuthService.CheckAuth(ActiveAccount.Id.ToString());
+                    await Load(ActiveAccount.Id.ToString());
+                }
+                else
+                {
+                    isLoggedin = false;
+                }
+            }
+            else
+            {
+                isLoggedin = false;
+            }
+        }
+        public async Task Load(string userId)
+        {
+            GlobalHelper.GithubClient = UserService.GetAuthenticatedClient(AuthService.GetToken(userId));
 
             if (IsInternet())
             {
                 if (isLoggedin)
                 {
-                    var user = await UserUtility.GetCurrentUserInfo();
-
-                    await LoadUser(user);
+                    var user = await UserService.GetCurrentUserInfo();
+                    LoadUser(user);
                 }
             }
         }
-        public async Task SignOut()
-        {
-            isLoading = true;
-
-            if (await AuthService.signOut())
-            {
-                isLoggedin = false;
-                User = null;
-                Messenger.Default.Send(new SignOutMessageType());
-                HamItemClicked(HamItems[0]);
-            }
-            isLoading = false;
-        }
-        public async Task LoadUser(User user)
+        public void LoadUser(User user)
         {
             if (user != null)
             {
                 GlobalHelper.UserLogin = user.Login;
-                if (!isLoggedin)
-                {
-                    isLoggedin = true;
-                    Messenger.Default.Send<User>(user);
-                }
+                isLoggedin = true;
+                Messenger.Default.Send<User>(user);
                 User = user;
-                if (user.Email == null)
-                {
-                    // If User's email is not visible publicly, the email field will return null
-                    // In this case we have to get the email separately
-                    this.Email = await UserUtility.GetUserEmail();
-                }
-                else Email = user.Email;
             }
+        }
+        public async Task DeleteAccount(string userId)
+        {
+            isLoading = true;
+            await AccountsService.RemoveUser(userId);
+            await InitializeAccounts();
+            isLoading = false;
         }
 
         public void HamItemClicked(HamItem item)
@@ -267,6 +345,12 @@ namespace CodeHub.ViewModels
 
             if (!(DisplayMode == SplitViewDisplayMode.Inline))
                 IsPaneOpen = false;
+        }
+        public async void SwitchUser_Click(object sender, ItemClickEventArgs e)
+        {
+            await AccountsService.MakeAccountActive((e.ClickedItem as Models.Account).Id.ToString());
+            await InitializeAccounts();
+            IsAccountsPanelVisible = false;
         }
         public void MainFrame_Navigated(object sender, NavigationEventArgs e)
         {
@@ -341,11 +425,12 @@ namespace CodeHub.ViewModels
             }
         }
 
-        public void RecieveSignInMessage(User user)
+        public async void RecieveSignInMessage(User user)
         {
             if (SimpleIoc.Default.GetInstance<IAsyncNavigationService>().CurrentSourcePageType != typeof(FeedView))
             {
-                SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(FeedView));
+                await SimpleIoc.Default.GetInstance<IAsyncNavigationService>().NavigateAsync(typeof(FeedView));
+                SimpleIoc.Default.GetInstance<IAsyncNavigationService>().ClearBackStack();
             }
         }
     }

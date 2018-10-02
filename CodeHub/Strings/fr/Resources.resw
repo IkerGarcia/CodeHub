@@ -136,7 +136,7 @@
   <data name="theme.Text" xml:space="preserve">
     <value>Thème</value>
   </data>
-  <data name="themeTip.Text" xml:space="preserve">
+  <data name="AppRestartTip.Text" xml:space="preserve">
     <value>L'application doit redémarrer pour prendre en compte les changements de thèmes</value>
   </data>
   <data name="ThemeToggleSwitch.OffContent" xml:space="preserve">
@@ -476,7 +476,7 @@
   </data>
   <data name="search_FilterByLanguage.PlaceholderText" xml:space="preserve">
     <value>Toutes les langues</value>
-    </data>
+  </data>
   <data name="search_Reset.Text" xml:space="preserve">
     <value>Reset</value>
   </data>
@@ -629,5 +629,14 @@
   </data>
   <data name="activity_ActivityWithIssues" xml:space="preserve">
     <value>{0} issue #{1} in</value>
+  </data>
+  <data name="Sign_Out.Content" xml:space="preserve">
+    <value>Sign Out</value>
+  </data>
+  <data name="Accounts.Text" xml:space="preserve">
+    <value>Accounts</value>
+  </data>
+  <data name="Add_Account.Text" xml:space="preserve">
+    <value>Add Account</value>
   </data>
 </root>
